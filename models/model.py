@@ -83,6 +83,9 @@ class CognitiveRadiologyModel(nn.Module):
             pretrained_generator=generator_model,
             dropout=dropout,
         )
+
+        # Safety projection for label embeddings when classifier uses a smaller hidden_dim
+        self.label_align = nn.Linear(hidden_dim // 2, hidden_dim)
         
         # Tokenizer for generation
         self.tokenizer = AutoTokenizer.from_pretrained(generator_model)
@@ -132,6 +135,10 @@ class CognitiveRadiologyModel(nn.Module):
         classification_logits = cls_output["logits"]  # [B, 14]
         classification_probs = cls_output["probabilities"]
         label_embeddings = cls_output["label_embeddings"]  # [B, 14, D]
+
+        # Ensure label embeddings match visual feature dimension
+        if label_embeddings.size(-1) != visual_features.size(-1):
+            label_embeddings = self.label_align(label_embeddings)
         
         result = {
             "visual_features": visual_features,
@@ -233,6 +240,10 @@ class CognitiveRadiologyModel(nn.Module):
         cls_output = self.classifier(pooled_features, return_embeddings=True)
         label_embeddings = cls_output["label_embeddings"]
         predicted_labels = cls_output["probabilities"]
+
+        # Ensure label embeddings match visual feature dimension
+        if label_embeddings.size(-1) != visual_features.size(-1):
+            label_embeddings = self.label_align(label_embeddings)
         
         # RCTA + Generation
         reports = self.decoder.generate_report(

@@ -9,20 +9,33 @@ from typing import List, Optional
 from pathlib import Path
 
 
+# ============================================================================
+# CENTRALIZED DATA PATHS - SINGLE SOURCE OF TRUTH
+# ============================================================================
+DATA_ROOT = "data"
+IU_DIR = f"{DATA_ROOT}/iu_xray"
+IU_IMAGES_DIR = f"{IU_DIR}/images"
+IU_REPORTS_CSV = f"{IU_DIR}/indiana_reports.csv"
+IU_PROJECTIONS_CSV = f"{IU_DIR}/indiana_projections.csv"
+
+
 @dataclass
 class DataConfig:
     """Data configuration"""
-    # Dataset paths
-    data_dir: str = "./data"
-    iu_xray_dir: str = "./data/iu_xray"
-    mimic_cxr_dir: str = "./data/mimic_cxr"  # Optional - requires PhysioNet access
+    # Dataset paths - use centralized constants
+    data_dir: str = DATA_ROOT
+    iu_xray_dir: str = IU_DIR
+    iu_images_dir: str = IU_IMAGES_DIR
+    iu_reports_csv: str = IU_REPORTS_CSV
+    iu_projections_csv: str = IU_PROJECTIONS_CSV
+    mimic_cxr_dir: str = f"{DATA_ROOT}/mimic_cxr"  # Optional - requires PhysioNet access
     
     # Image settings
     image_size: int = 224
     num_channels: int = 3
     
     # Text settings
-    max_seq_length: int = 256
+    max_seq_length: int = 128
     max_findings_length: int = 200
     max_impression_length: int = 100
     
@@ -40,7 +53,7 @@ class DataConfig:
 class EncoderConfig:
     """PRO-FA Visual Encoder Configuration"""
     # Backbone
-    backbone: str = "swin_base_patch4_window7_224"  # Swin-Transformer-Base
+    backbone: str = "swin_small_patch4_window7_224"  # Swin-Transformer-Small
     pretrained: bool = True
     
     # Multi-scale feature dimensions
@@ -95,14 +108,14 @@ class DecoderConfig:
     """RCTA + Report Generator Configuration"""
     # RCTA Attention
     hidden_dim: int = 768
-    num_attention_heads: int = 12
+    num_attention_heads: int = 8
     attention_dropout: float = 0.1
     
     # Triangular attention stages
     num_rcta_layers: int = 3
     
     # Report Generator (GPT-2)
-    generator_model: str = "gpt2-medium"  # Can use BioMedLM if available
+    generator_model: str = "gpt2"  # Matches hidden_dim=768
     vocab_size: int = 50257
     max_length: int = 256
     
@@ -122,7 +135,7 @@ class TrainingConfig:
     """Training Configuration"""
     # Batch settings
     batch_size: int = 8
-    gradient_accumulation_steps: int = 4  # Effective batch size = 32
+    gradient_accumulation_steps: int = 16  # Effective batch size = 32 with batch_size=2
     
     # Optimizer
     optimizer: str = "adamw"

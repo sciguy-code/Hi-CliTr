@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hi-CliTr | AI X-Ray Report Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-gradient"></div>
+    
+    <main class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🩺</span>
+                <span class="logo-text">Hi-CliTr</span>
+            </div>
+            <p class="tagline">Cognitive AI Radiology Report Generator</p>
+        </header>
+
+        <!-- Main Card -->
+        <div class="glass-card">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h2 class="section-title">Upload Chest X-Ray</h2>
+                
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <div class="upload-icon">📤</div>
+                        <p class="upload-text">Drag & drop your X-ray image here</p>
+                        <p class="upload-subtext">or click to select a file</p>
+                        <p class="upload-formats">Supports: PNG, JPG, JPEG</p>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+
+                <!-- Image Preview -->
+                <div class="preview-container" id="previewContainer" style="display: none;">
+                    <img id="imagePreview" alt="X-Ray Preview">
+                    <button class="remove-btn" id="removeBtn">✕</button>
+                </div>
+
+                <!-- Clinical Indication -->
+                <div class="indication-group">
+                    <label for="indication">Clinical Indication (Optional)</label>
+                    <textarea id="indication" placeholder="e.g., 55-year-old male with fever and productive cough for 3 days"></textarea>
+                </div>
+
+                <!-- Analyze Button -->
+                <button class="analyze-btn" id="analyzeBtn" disabled>
+                    <span class="btn-text">Generate Report</span>
+                    <span class="btn-icon">→</span>
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loader"></div>
+                <p class="loading-text">Analyzing X-ray with AI...</p>
+                <p class="loading-subtext">This may take a moment</p>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2 class="section-title">📋 Generated Report</h2>
+                
+                <!-- Report Content -->
+                <div class="report-card">
+                    <div class="report-section">
+                        <h3 class="report-label">Findings</h3>
+                        <p id="findingsText" class="report-content"></p>
+                    </div>
+                    
+                    <div class="report-section">
+                        <h3 class="report-label">Impression</h3>
+                        <p id="impressionText" class="report-content"></p>
+                    </div>
+                </div>
+
+                <!-- Warning Message -->
+                <div class="warning-message" id="warningMessage" style="display: none;"></div>
+
+                <!-- Pathology Predictions -->
+                <div class="predictions-card">
+                    <h3 class="predictions-title">CheXpert Pathology Predictions</h3>
+                    <div id="predictionsGrid" class="predictions-grid"></div>
+                </div>
+
+                <!-- New Analysis Button -->
+                <button class="new-analysis-btn" id="newAnalysisBtn">
+                    <span>+ New Analysis</span>
+                </button>
+            </div>
+
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <span class="error-icon">⚠️</span>
+                <span id="errorText"></span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Hi-CliTr Cognitive Radiology Model</p>
+            <p class="disclaimer">⚠️ For research purposes only. Not for clinical diagnosis.</p>
+        </footer>
+    </main>
+
+    <script>
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeBtn = document.getElementById('removeBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const indication = document.getElementById('indication');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const resultsSection = document.getElementById('resultsSection');
+        const findingsText = document.getElementById('findingsText');
+        const impressionText = document.getElementById('impressionText');
+        const predictionsGrid = document.getElementById('predictionsGrid');
+        const predictionsCard = document.querySelector('.predictions-card');
+        const warningMessage = document.getElementById('warningMessage');
+        const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        let selectedFile = null;
+
+        // Upload Zone Click
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag and Drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File Input Change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Handle File Selection
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file.');
+                return;
+            }
+
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                uploadZone.style.display = 'none';
+                previewContainer.style.display = 'block';
+                analyzeBtn.disabled = false;
+                hideError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Remove Image
+        removeBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            imagePreview.src = '';
+            previewContainer.style.display = 'none';
+            uploadZone.style.display = 'flex';
+            analyzeBtn.disabled = true;
+        });
+
+        // Analyze Button
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Show loading
+            loadingOverlay.style.display = 'flex';
+            hideError();
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('indication', indication.value || 'Clinical indication not provided.');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                // Display results
+                displayResults(data);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        // Display Results
+        function displayResults(data) {
+            findingsText.textContent = data.findings;
+            impressionText.textContent = data.impression;
+
+            // Warning state (e.g., no trained checkpoint)
+            if (data.warning) {
+                warningMessage.textContent = data.warning;
+                warningMessage.style.display = 'block';
+            } else {
+                warningMessage.style.display = 'none';
+            }
+
+            // Generate predictions grid
+            predictionsGrid.innerHTML = '';
+            if (data.predictions && data.predictions.length > 0) {
+                predictionsCard.style.display = 'block';
+                data.predictions.forEach(pred => {
+                    const item = document.createElement('div');
+                    item.className = `prediction-item ${pred.positive ? 'positive' : 'negative'}`;
+                    item.innerHTML = `
+                        <div class="prediction-header">
+                            <span class="prediction-name">${pred.name}</span>
+                            <span class="prediction-status">${pred.positive ? 'YES' : 'NO'}</span>
+                        </div>
+                        <div class="prediction-bar-container">
+                            <div class="prediction-bar" style="width: ${pred.probability * 100}%"></div>
+                        </div>
+                        <span class="prediction-prob">${(pred.probability * 100).toFixed(1)}%</span>
+                    `;
+                    predictionsGrid.appendChild(item);
+                });
+            } else {
+                predictionsCard.style.display = 'none';
+            }
+
+            resultsSection.style.display = 'block';
+
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // New Analysis
+        newAnalysisBtn.addEventListener('click', () => {
+            removeBtn.click();
+            indication.value = '';
+            resultsSection.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Error Handling
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.style.display = 'flex';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

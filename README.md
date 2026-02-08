@@ -3,60 +3,60 @@
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Soumadipta-Konar/Hi-CliTr/graphs/commit-activity)
 
 > A state-of-the-art Deep Learning framework for automated chest X-ray report generation implementing **Cognitive Simulation** inspired by the Hi-CliTr framework.
 
-<p align="center">
-  <img src="docs/architecture.png" alt="Architecture Diagram" width="800"/>
-</p>
+---
 
 ## 🌟 Highlights
 
-- **PRO-FA**: Hierarchical Visual Perception with RadLex medical ontology alignment
-- **MIX-MLP**: Knowledge-enhanced multi-label classification for 14 CheXpert pathologies
-- **RCTA**: Triangular Cognitive Attention with closed-loop verification
-- **GPT-2 Generator**: Medical text generation for Findings and Impressions
+* **[PRO-FA (Progressive Feature Alignment)](#pro-fa)**: Implements **Hierarchical Visual Perception** via a Swin-Transformer backbone. It aligns multi-scale features—Organ (4×4), Region (7×7), and Pixel-level (7×7)—with the **RadLex** medical ontology for anatomically grounded encoding.
+* **[MIX-MLP (Multi-path Classifier)](#mix-mlp)**: A dual-path, knowledge-enhanced architecture featuring a **Residual Path** for efficient feature flow and an **Expansion Path** for complex pattern recognition. It provides high-precision classification for **14 CheXpert pathologies**.
+* **[RCTA (Triangular Cognitive Attention)](#rcta)**: A 3-stage **closed-loop verification** system that simulates a radiologist's logic: Image → Text (Context), Text → Labels (Hypothesis), and Labels → Image (Verification).
+* **[GPT-2 Generator](#generator)**: Utilizes a **GPT-2 Medium** backbone (355M params) conditioned via prefix tokens and cross-attention to generate structured **Findings and Impressions**.
+
+---
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    COGNITIVE RADIOLOGY MODEL                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────┐ │
-│  │   CXR       │    │  Clinical   │    │                         │ │
-│  │  Images     │    │ Indication  │    │     Generated Report    │ │
-│  │  (PA/LAT)   │    │   Text      │    │  ┌──────────────────┐  │ │
-│  └──────┬──────┘    └──────┬──────┘    │  │ FINDINGS:        │  │ │
-│         │                  │           │  │ Heart size normal│  │ │
-│         ▼                  │           │  │ Lungs are clear  │  │ │
-│  ┌─────────────────────┐   │           │  ├──────────────────┤  │ │
-│  │      PRO-FA         │   │           │  │ IMPRESSION:      │  │ │
-│  │ ┌─────┬─────┬─────┐ │   │           │  │ No acute         │  │ │
-│  │ │Organ│Regio│Pixel│ │   │           │  │ abnormality      │  │ │
-│  │ │ 4x4 │ 7x7 │ 7x7 │ │   │           │  └──────────────────┘  │ │
-│  │ └──┬──┴──┬──┴──┬──┘ │   │           │                         │ │
-│  │    └─────┼─────┘    │   │           └─────────────────────────┘ │
-│  │    RadLex Align     │   │                      ▲                │
-│  └──────────┬──────────┘   │                      │                │
-│             │              │           ┌──────────┴──────────┐     │
-│             ▼              │           │   Report Generator  │     │
-│  ┌─────────────────────┐   │           │      (GPT-2)        │     │
-│  │      MIX-MLP        │   │           └──────────┬──────────┘     │
-│  │ ┌─────────────────┐ │   │                      ▲                │
-│  │ │  Residual Path  │ │   │                      │                │
-│  │ ├─────────────────┤ │   │           ┌──────────┴──────────┐     │
-│  │ │ Expansion Path  │ │   │           │       RCTA          │     │
-│  │ └────────┬────────┘ │   │           │  ┌──────────────┐   │     │
-│  │          ▼          │   │           │  │ Image→Text   │   │     │
-│  │   14 CheXpert Labels│   └──────────►│  │ Text→Labels  │   │     │
-│  │   (Multi-label F1)  │───────────────│  │ Labels→Image │   │     │
-│  └─────────────────────┘               │  └──────────────┘   │     │
-│                                        └─────────────────────┘     │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────┐  │
+│  │   CXR       │    │  Clinical   │    │                         │  │
+│  │  Images     │    │ Indication  │    │     Generated Report    │  │
+│  │  (PA/LAT)   │    │   Text      │    │  ┌──────────────────┐  │  │
+│  └──────┬──────┘    └──────┬──────┘    │  │ FINDINGS:        │  │  │
+│         │                  │           │  │ Heart size normal│  │  │
+│         ▼                  │           │  │ Lungs are clear  │  │  │
+│  ┌─────────────────────┐   │           │  ├──────────────────┤  │  │
+│  │      PRO-FA         │   │           │  │ IMPRESSION:      │  │  │
+│  │ ┌─────┬─────┬─────┐ │   │           │  │ No acute         │  │  │
+│  │ │Organ│Regio│Pixel│ │   │           │  │ abnormality      │  │  │
+│  │ │ 4x4 │ 7x7 │ 7x7 │ │   │           │  └──────────────────┘  │  │
+│  │ └──┬──┴──┬──┴──┬──┘ │   │           │                         │  │
+│  │    └─────┼─────┘    │   │           └─────────────────────────┘  │
+│  │    RadLex Align     │   │                      ▲                 │
+│  └──────────┬──────────┘   │                      │                 │
+│             │              │           ┌──────────┴──────────┐      │
+│             ▼              │           │   Report Generator  │      │
+│  ┌─────────────────────┐   │           │      (GPT-2)        │      │
+│  │      MIX-MLP        │   │           └──────────┬──────────┘      │
+│  │ ┌─────────────────┐ │   │                      ▲                 │
+│  │ │  Residual Path  │ │   │                      │                 │
+│  │ ├─────────────────┤ │   │           ┌──────────┴──────────┐      │
+│  │ │ Expansion Path  │ │   │           │       RCTA          │      │
+│  │ └────────┬────────┘ │   │           │  ┌──────────────┐   │      │
+│  │          ▼          │   │           │  │ Image→Text   │   │      │
+│  │   14 CheXpert Labels│   └──────────►│  │ Text→Labels  │   │      │
+│  │   (Multi-label F1)  │───────────────│  │ Labels→Image │   │      │
+│  └─────────────────────┘               │  └──────────────┘   │      │
+│                                        └─────────────────────┘      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
-
 ## 📁 Project Structure
 
 ```
@@ -83,6 +83,29 @@ BrainDead-Solution/
 ├── requirements.txt            # Dependencies
 └── README.md                   # This file
 ```
+## 🎮 Interactive Model Dashboard
+
+<details>
+<summary><b>🚀 Run Live Inference (Generate Report)</b></summary>
+
+```python
+from models.model import create_model
+import torch
+
+# 1. Load Pretrained Hi-CliTr
+model = create_model(pretrained=True, device="cuda")
+model.load_state_dict(torch.load("checkpoints/best.pt")["model_state_dict"])
+model.eval()
+
+# 2. Generate Cognitive Report
+with torch.no_grad():
+    result = model.generate_report(
+        images="sample_xray.png", 
+        indication="55M with fever and cough"
+    )
+print(f"📋 Generated Report:\n{result['reports'][0]}")
+ 
+```
 
 ## 🚀 Quick Start
 
@@ -102,14 +125,28 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
-### Download Dataset
+### Dataset Setup
 
+The IU-Xray dataset (~13 GB) should already be downloaded and extracted locally.
+
+**Expected dataset layout:**
+```
+data/iu_xray/
+├── images/
+├── indiana_reports.csv
+└── indiana_projections.csv
+```
+
+**Verify and preprocess dataset:**
 ```bash
-# Download IU-Xray from Kaggle
-python data/download_iu_xray.py --download --preprocess
-
-# Verify dataset
+# Verify dataset integrity
 python data/download_iu_xray.py --verify
+
+# Preprocess dataset (create splits)
+python data/download_iu_xray.py --preprocess
+
+# Run comprehensive sanity check
+python data/sanity_check.py
 ```
 
 ### Training
@@ -216,6 +253,9 @@ This project is for educational and research purposes. MIT License.
 
 ---
 
+---
 <p align="center">
-  Made with 🧠 by Team BrainDead for ML Hackathon 2026
+  Made with 🧠 by <b>Team CrackHeads</b> for <b>ML Hackathon 2026</b>
+  <br>
+  <i>"Pushing the boundaries of Cognitive Simulation in Radiology"</i>
 </p>

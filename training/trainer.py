@@ -467,6 +467,8 @@ def train_model(
         data_dir=data_dir,
         batch_size=batch_size,
         num_workers=4 if not fast_dev_run else 0,
+        image_size=config.data.image_size,
+        max_seq_length=config.data.max_seq_length,
     )
     
     print(f"Train samples: {len(train_loader.dataset)}")

@@ -192,6 +192,8 @@ class MIXMLPClassifier(nn.Module):
         self.num_labels = num_labels
         self.label_names = config.classifier.chexpert_labels
         self.use_label_correlation = use_label_correlation
+        self.input_dim = input_dim  # Store for label embedding output
+        self.hidden_dim = hidden_dim
         
         # Feature transformation
         self.input_norm = nn.LayerNorm(input_dim)
@@ -223,6 +225,9 @@ class MIXMLPClassifier(nn.Module):
             self.label_heads = nn.ModuleList([
                 nn.Linear(hidden_dim * 2, hidden_dim) for _ in range(num_labels)
             ])
+            
+            # Project label embeddings to full input_dim for decoder compatibility
+            self.label_embed_proj = nn.Linear(hidden_dim, input_dim)
         else:
             self.fusion = nn.Sequential(
                 nn.Linear(num_labels * 2, num_labels * 2),
@@ -287,6 +292,8 @@ class MIXMLPClassifier(nn.Module):
         }
         
         if return_embeddings and embeddings is not None:
+            # Project to full input_dim for decoder compatibility
+            embeddings = self.label_embed_proj(embeddings)  # [B, num_labels, input_dim]
             output["label_embeddings"] = embeddings
         
         return output

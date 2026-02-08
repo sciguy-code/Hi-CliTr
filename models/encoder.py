@@ -119,6 +119,14 @@ class MultiScaleSwinEncoder(nn.Module):
         features = self.backbone(x)
         organ_feat, region_feat, pixel_feat = features
         
+        # Swin Transformer outputs in NHWC format, convert to NCHW for Conv2d
+        # Shape: [B, H, W, C] -> [B, C, H, W]
+        # NHWC: last dim (C=192/512/1024) is larger than first spatial dim (H=28/14/7)
+        if organ_feat.dim() == 4 and organ_feat.shape[-1] > organ_feat.shape[1]:
+            organ_feat = organ_feat.permute(0, 3, 1, 2).contiguous()
+            region_feat = region_feat.permute(0, 3, 1, 2).contiguous()
+            pixel_feat = pixel_feat.permute(0, 3, 1, 2).contiguous()
+        
         # Project to common dimension
         organ_feat = self.organ_proj(organ_feat)
         region_feat = self.region_proj(region_feat)
