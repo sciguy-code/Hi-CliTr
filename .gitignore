@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data (too large for git)
+data/iu_xray/images/
+data/iu_xray/*.csv
+data/mimic_cxr/
+*.dcm
+*.dicom
+
+# Model checkpoints (upload to Drive instead)
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Logs
+logs/
+wandb/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+kaggle.json
