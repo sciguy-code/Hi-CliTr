@@ -9,12 +9,40 @@
 
 ---
 
-## 🌟 Highlights
+## 📖 Overview
 
-* **[PRO-FA (Progressive Feature Alignment)](#pro-fa)**: Implements **Hierarchical Visual Perception** via a Swin-Transformer backbone. It aligns multi-scale features—Organ (4×4), Region (7×7), and Pixel-level (7×7)—with the **RadLex** medical ontology for anatomically grounded encoding.
-* **[MIX-MLP (Multi-path Classifier)](#mix-mlp)**: A dual-path, knowledge-enhanced architecture featuring a **Residual Path** for efficient feature flow and an **Expansion Path** for complex pattern recognition. It provides high-precision classification for **14 CheXpert pathologies**.
-* **[RCTA (Triangular Cognitive Attention)](#rcta)**: A 3-stage **closed-loop verification** system that simulates a radiologist's logic: Image → Text (Context), Text → Labels (Hypothesis), and Labels → Image (Verification).
-* **[GPT-2 Generator](#generator)**: Utilizes a **GPT-2 Medium** backbone (355M params) conditioned via prefix tokens and cross-attention to generate structured **Findings and Impressions**.
+**Hi-CliTr** (Hierarchical Cross-modal Cognitive Transformer) is designed to address "reader fatigue" in radiology by acting as an intelligent "Second Reader". Unlike standard image captioning models, Hi-CliTr simulates the cognitive workflow of a radiologist:
+
+1.  **Perceives** anatomical structures at multiple scales (Organ → Region → Pixel).
+2.  **Reasons** about potential pathologies using a knowledge graph.
+3.  **Verifies** its findings against the image before generating the final report.
+
+This project implements the core components: **PRO-FA** (Progressive Feature Alignment), **MIX-MLP** (Knowledge-Enhanced Classification), and **RCTA** (Triangular Cognitive Attention).
+
+---
+
+## 🌟 Key Features
+
+### 1. [PRO-FA (Progressive Feature Alignment)](#pro-fa)
+Implements **Hierarchical Visual Perception** via a **Swin-Transformer** backbone. It aligns multi-scale features with the **RadLex** medical ontology:
+*   **Organ-level (4×4)**: Global anatomical awareness.
+*   **Region-level (7×7)**: Lobe/region specific features.
+*   **Pixel-level (7×7)**: Fine-grained lesion details.
+
+### 2. [MIX-MLP (Multi-path Classifier)](#mix-mlp)
+A dual-path, knowledge-enhanced architecture for disease classification:
+*   **Residual Path**: Efficient feature flow for common cases.
+*   **Expansion Path**: Captures complex disease patterns and co-occurrences.
+*   **CheXpert**: High-precision classification for **14 common pathologies**.
+
+### 3. [RCTA (Triangular Cognitive Attention)](#rcta)
+A 3-stage **closed-loop verification** system that mimics clinical reasoning:
+1.  **Image → Text**: Creates context from visual features and clinical indication.
+2.  **Context → Labels**: Formulates a diagnostic hypothesis.
+3.  **Labels → Image**: Verifies the hypothesis against visual evidence.
+
+### 4. [GPT-2 Generator](#generator)
+Utilizes a **GPT-2 Medium** backbone (355M params) to generate structured, clinically accurate reports (Findings & Impression), conditioned on the cognitive states from RCTA.
 
 ---
 
@@ -57,186 +85,169 @@
 │                                        └─────────────────────┘      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
-## 📁 Project Structure
+
+---
+
+## 📁 Directory Structure
 
 ```
 BrainDead-Solution/
-├── data/
+├── data/                       # Data management
 │   ├── __init__.py
-│   ├── download_iu_xray.py     # Dataset download & preprocessing
-│   └── dataset.py              # PyTorch Dataset implementations
-├── models/
+│   ├── download_iu_xray.py     # Scripts for downloading & preprocessing IU-Xray
+│   ├── dataset.py              # PyTorch Dataset definitions (MIMIC-CXR, IU-Xray)
+│   └── sanity_check.py         # Data integrity verification script
+├── models/                     # Core model components
 │   ├── __init__.py
-│   ├── encoder.py              # PRO-FA: Multi-scale ViT + RadLex
-│   ├── classifier.py           # MIX-MLP: Dual-path classifier
-│   ├── decoder.py              # RCTA + GPT-2 generator
-│   └── model.py                # Complete unified model
-├── training/
+│   ├── encoder.py              # PRO-FA: Multi-scale ViT + RadLex Alignment
+│   ├── classifier.py           # MIX-MLP: Knowledge-enhanced classifier
+│   ├── decoder.py              # RCTA + GPT-2 Decoder
+│   └── model.py                # Unified Hi-CliTr Model assembly
+├── training/                   # training logic
 │   ├── __init__.py
-│   └── trainer.py              # Training pipeline
-├── evaluation/
+│   └── trainer.py              # Training loop, validation, and saving
+├── evaluation/                 # Metrics and evaluation
 │   ├── __init__.py
-│   └── metrics.py              # CheXpert F1, NLG metrics
+│   └── metrics.py              # CheXpert F1, BLEU, CIDEr, RadGraph F1
 ├── notebooks/
-│   └── inference_demo.ipynb    # Interactive demo
-├── config.py                   # Configuration
-├── requirements.txt            # Dependencies
-└── README.md                   # This file
+│   └── inference_demo.ipynb    # Interactive Jupyter notebook for demo
+├── static/                     # Web app static assets (CSS/JS)
+├── templates/                  # Web app HTML templates
+├── app.py                      # Flask Web Application entry point
+├── config.py                   # Centralized configuration file
+├── requirements.txt            # Python dependencies
+├── problem_statement.md        # Original hackathon problem statement
+└── README.md                   # Project documentation
 ```
-## 🎮 Interactive Model Dashboard
 
-<details>
-<summary><b>🚀 Run Live Inference (Generate Report)</b></summary>
-
-```python
-from models.model import create_model
-import torch
-
-# 1. Load Pretrained Hi-CliTr
-model = create_model(pretrained=True, device="cuda")
-model.load_state_dict(torch.load("checkpoints/best.pt")["model_state_dict"])
-model.eval()
-
-# 2. Generate Cognitive Report
-with torch.no_grad():
-    result = model.generate_report(
-        images="sample_xray.png", 
-        indication="55M with fever and cough"
-    )
-print(f"📋 Generated Report:\n{result['reports'][0]}")
- 
-```
+---
 
 ## 🚀 Quick Start
 
-### Installation
+### 1. Installation
+
+Clone the repository and install dependencies:
 
 ```bash
 # Clone repository
 git clone https://github.com/your-username/braindead-solution.git
 cd braindead-solution
 
-# Create virtual environment
+# Create virtual environment (Recommended)
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or: venv\Scripts\activate  # Windows
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### Dataset Setup
+### 2. Dataset Setup
 
-The IU-Xray dataset (~13 GB) should already be downloaded and extracted locally.
+This project uses the **IU-Xray** dataset for benchmarking and public usage. A helper script is provided to download and prepare it.
 
-**Expected dataset layout:**
-```
-data/iu_xray/
-├── images/
-├── indiana_reports.csv
-└── indiana_projections.csv
-```
-
-**Verify and preprocess dataset:**
 ```bash
-# Verify dataset integrity
+# Verify integrity of existing data or download
 python data/download_iu_xray.py --verify
 
-# Preprocess dataset (create splits)
+# Preprocess dataset (create splits and metadata)
 python data/download_iu_xray.py --preprocess
 
-# Run comprehensive sanity check
+# Run a sanity check to ensure everything is loadable
 python data/sanity_check.py
 ```
 
-### Training
+*Note: For **MIMIC-CXR**, you must have credentialed access via PhysioNet. Place the dataset in `data/mimic_cxr` if available.*
+
+### 3. Training
+
+Train the model from scratch using the `trainer.py` script. You can configure hyperparameters in `config.py` or pass them as arguments.
 
 ```bash
-# Full training
+# Standard training run
 python training/trainer.py \
-    --data_dir ./data/iu_xray \
     --max_epochs 30 \
     --batch_size 8 \
     --learning_rate 1e-4
 
-# Quick test run
+# Fast dev run (sanity check training loop)
 python training/trainer.py --fast_dev_run
 ```
 
-### Inference
+### 4. Web Application (Demo)
+
+Launch the interactive web interface to generate reports for uploaded X-rays.
+
+```bash
+python app.py
+```
+Open **[http://localhost:5000](http://localhost:5000)** in your browser.
+
+*   Upload a Chest X-ray image.
+*   (Optional) Enter clinical indication (e.g., "Fever and cough").
+*   View the generated **Findings** and **Impression**.
+
+### 5. Inference (CLI / Notebook)
+
+You can also run inference programmatically:
 
 ```python
 from models.model import create_model
 import torch
-from PIL import Image
-from torchvision import transforms
 
-# Load model
+# Load Model
 model = create_model(pretrained=True, device="cuda")
 model.load_state_dict(torch.load("checkpoints/best.pt")["model_state_dict"])
 model.eval()
 
-# Prepare image
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
-image = transform(Image.open("xray.png")).unsqueeze(0).cuda()
-
-# Generate report
-with torch.no_grad():
-    result = model.generate_report(
-        images=image,
-        indication="55M with fever and cough"
-    )
-
-print(result["reports"][0])
+# Generate Report
+result = model.generate_report(
+    images="path/to/xray.png", 
+    indication="Patient with shortness of breath"
+)
+print(result['reports'][0])
 ```
 
-## 📊 Performance
+See `notebooks/inference_demo.ipynb` for a complete walkthrough.
 
-| Metric | IU-Xray Test | Target |
-|--------|-------------|--------|
-| CheXpert Micro F1 | TBD | > 0.500 |
-| RadGraph F1 | TBD | > 0.500 |
-| CIDEr | TBD | > 0.400 |
-| BLEU-4 | TBD | 0.100+ |
+---
 
-## 🧠 Technical Details
+## ⚙️ Configuration
 
-### PRO-FA (Progressive Feature Alignment)
+The `config.py` file controls all aspects of the model and training. Key sections:
 
-- **Backbone**: Swin-Transformer-Base (88M params, ImageNet-22K pretrained)
-- **Multi-scale features**:
-  - Organ-level: 4×4 (global anatomy)
-  - Region-level: 7×7 (lobe/region)
-  - Pixel-level: 7×7 (lesion details)
-- **RadLex Integration**: 50 core anatomical concepts with learnable embeddings
+*   **`DataConfig`**: Paths, image size (224x224), sequence lengths.
+*   **`EncoderConfig`**: Swin Transformer settings, RadLex concept count.
+*   **`ClassifierConfig`**: CheXpert labels, loss weights.
+*   **`DecoderConfig`**: GPT-2 settings, beam search parameters (k=4).
+*   **`TrainingConfig`**: Learning rate, batch size, mixed precision (AMP) settings.
 
-### MIX-MLP (Multi-path Classifier)
+---
 
-- **Dual-path architecture**:
-  - Residual path: Efficient skip-connected transformation
-  - Expansion path: 4× hidden expansion for complex patterns
-- **Label correlation**: Graph attention for disease co-occurrence
-- **Loss**: Asymmetric focal loss for class imbalance
+## 📊 Performance Targets
 
-### RCTA (Triangular Cognitive Attention)
+| Metric | IU-Xray Test | Target | Description |
+|--------|-------------|--------|-------------|
+| **CheXpert Micro F1** | *TBD* | **> 0.500** | Clinical accuracy of disease detection |
+| **RadGraph F1** | *TBD* | **> 0.500** | Semantic relation accuracy |
+| **CIDEr** | *TBD* | **> 0.400** | Text generation consensus metric |
+| **BLEU-4** | *TBD* | **> 0.100** | N-gram overlap precision |
 
-- **3-stage verification**:
-  1. Image → Clinical Text (context creation)
-  2. Context → Labels (hypothesis formation)
-  3. Hypothesis → Image (closed-loop verification)
-- **L=3 layers** with multi-head cross-attention
+---
 
-### Report Generator
+## 🤝 Contributing
 
-- **Base**: GPT-2 Medium (355M params)
-- **Conditioning**: Prefix tokens + cross-attention at layers 2, 5, 8, 11
-- **Decoding**: Beam search (k=4) with repetition penalty
+Contributions are welcome!
+1.  Fork the repository.
+2.  Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
+
+---
 
 ## 📝 Citation
+
+If you use this code for your research, please cite:
 
 ```bibtex
 @inproceedings{braindead2026,
@@ -247,15 +258,16 @@ print(result["reports"][0])
 }
 ```
 
+---
+
 ## 📄 License
 
-This project is for educational and research purposes. MIT License.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
----
 <p align="center">
-  Made with 🧠 by <b>Team CrackHeads</b> for <b>ML Hackathon 2026</b>
+  Made with 🧠 and ❤️ by <b>Team BrainDead</b> for <b>ML Hackathon 2026</b>
   <br>
   <i>"Pushing the boundaries of Cognitive Simulation in Radiology"</i>
 </p>
